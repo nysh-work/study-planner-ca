@@ -118,20 +118,40 @@ elif menu_option in subjects:
 
             for subtopic, subtopic_data in subtopics.items():
                 if isinstance(subtopic_data, dict): # Check if subtopic_data is a dictionary
+                    st.write(f"**{subtopic}**")
                     col1, col2, col3 = st.columns([4,1,2])
                     with col1:
-                        completed = st.checkbox(subtopic, key=f"checkbox_{menu_option}_{topic}_{subtopic}", value=subtopic_data['completed'])
+                        completed = st.checkbox("Completed", key=f"checkbox_{menu_option}_{topic}_{subtopic}", value=subtopic_data['completed'])
                     with col2:
                         if st.button("Delete", key=f"delete_{menu_option}_{topic}_{subtopic}"):
                             del subtopics[subtopic]
                             st.experimental_rerun()
-
                     with col3:
-                        resource_link = st.text_input("Resource Link",key=f"resource_{menu_option}_{topic}_{subtopic}")
-                        if st.button("Add/Update Resource", key=f"resource_button_{menu_option}_{topic}_{subtopic}"):
-                            subtopic_data['resources'].append(resource_link)
-                            st.success("Resource link added/updated!")
-                            save_data(st.session_state.subjects_data)
+                        pass
+
+                    # --- Resources for Subtopic ---
+                    with st.expander(f"Resources for {subtopic}"):
+                        resource_link = st.text_input("Resource Link:", key=f"resource_input_{menu_option}_{topic}_{subtopic}")
+                        if st.button("Add Resource", key=f"add_resource_button_{menu_option}_{topic}_{subtopic}"):
+                            if resource_link:
+                                subtopic_data['resources'].append(resource_link)
+                                st.success("Resource link added!")
+                                save_data(st.session_state.subjects_data)
+                            else:
+                                st.warning("Please enter a resource link.")
+
+                        if subtopic_data['resources']:
+                            st.write("Existing Resources:")
+                            for i, link in enumerate(subtopic_data['resources']):
+                                col1, col2 = st.columns([4,1])
+                                with col1:
+                                    st.write(f"- {link}")
+                                with col2:
+                                    if st.button(f"Delete", key=f"delete_resource_{menu_option}_{topic}_{subtopic}_{i}"):
+                                        subtopic_data['resources'].pop(i)  # Remove the link from the list
+                                        save_data(st.session_state.subjects_data)
+                                        st.experimental_rerun()
+
                     if completed != subtopic_data['completed']:
                         subtopic_data['completed'] = completed
                         # Recalculate topic and subject progress
@@ -206,7 +226,21 @@ elif menu_option == "Schedule":
 # --- Resources Page ---
 elif menu_option == "Resources":
     st.title("Study Resources")
-    # Implementation (centralized view, filtering)
+
+    all_resources = []
+    for subject, subject_data in st.session_state.subjects_data.items():
+        for topic, subtopics in subject_data['topics'].items():
+            for subtopic, subtopic_data in subtopics.items():
+                if isinstance(subtopic_data, dict):
+                    for resource in subtopic_data['resources']:
+                        all_resources.append({'subject': subject, 'topic': topic, 'subtopic': subtopic, 'link': resource})
+
+    if all_resources:
+        # Display resources in a table
+        df = pd.DataFrame(all_resources)
+        st.dataframe(df) #Basic Display
+    else:
+        st.write("No resources added yet.")
 
 # --- Mock Tests Page ---
 elif menu_option == "Mock Tests":
